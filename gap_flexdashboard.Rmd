@@ -1,0 +1,93 @@
+---
+title: "Untitled"
+output: 
+  flexdashboard::flex_dashboard:
+    orientation: rows
+    vertical_layout: fill
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(flexdashboard)
+library(dplyr)
+library(shiny)
+library(plotly)
+library(ggplot2)
+library(tidyr)
+library(rvest)
+library(janitor)
+library(gapminder)
+library(magrittr)
+```
+
+```{r data}
+gap <- gapminder 
+
+mortality <- readxl::read_excel("data/global_mortality.xlsx")
+
+life_exp <- readr::read_csv("data/life_expectancy_years.csv") %>% 
+   pivot_longer(-country, names_to = "year", values_to = "life_exp") %>% 
+  mutate(year = as.numeric(year)) %>% 
+  filter(year >= 1990 & year <= 2016)
+
+```
+
+Column {.sidebar data-width=200}
+-----------------------------------------------------------------------
+
+```{r}
+selectInput("country_dash1", label = "Select Country", choices = unique(gap$country))
+```
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+### Overview - `r reactive(input$country_dash1)`
+```{r}
+data <- reactive({gap %>% filter(country == input$country_dash1)})
+```
+* Life Expectancy has changed from `r data() %>% filter(year == min(year)) %>% select(lifeExp) %>% as.character()` 
+
+
+Column {data-width=400}
+-----------------------------------------------------------------------
+
+### Chart A
+
+```{r}
+renderPlotly({
+  
+  data <- gap %>% 
+    group_by(country) %>% 
+    mutate(avg_exp = mean(lifeExp)) %>% 
+    ungroup() %>% 
+  filter(country %in% input$country_dash1)
+  
+   plot_ly(data,
+              x = ~year,
+              y = ~lifeExp,
+              type = "scatter", 
+           mode = "lines") %>%
+  layout(title = "",
+         xaxis = list(title = "" ,
+                      zeroline = FALSE),
+         yaxis = list(
+                     range = list(0, max(gap$lifeExp)))) %>% 
+     add_trace(y = ~avg_exp,  type = 'scatter', mode = 'lines')
+})
+```
+
+Column {data-width=350}
+-----------------------------------------------------------------------
+
+### Chart B
+
+```{r}
+
+```
+
+### Chart C
+
+```{r}
+
+```
+
